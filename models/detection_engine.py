@@ -90,6 +90,17 @@ class PhishingDetectionEngine:
         }
         
         final_risk_score = self.risk_calculator.calculate_combined_score(scores_dict)
+
+        strong_signals = sum([
+            keyword_score >= 12,
+            url_analysis.get('suspicion_count', 0) > 0,
+            regex_risk_score >= 30,
+            sender_risk_score >= 10,
+            bool(keywords_found.get('urgent')) and bool(keywords_found.get('credentials')),
+        ])
+        if strong_signals >= 4:
+            final_risk_score = max(final_risk_score, 80)
+
         final_risk_level = self.risk_calculator.score_to_risk_level(final_risk_score)
         
         # Get confidence and summary
@@ -181,6 +192,10 @@ class PhishingDetectionEngine:
             'risk_level': risk_level,
             'detected_indicators': all_indicators,
             'ai_explanation': ai_analysis.get('ai_explanation', ''),
+            'risk_level_text': ai_analysis.get('risk_level_text', ai_analysis.get('risk_level', 'Moderate')),
+            'top_concerns': ai_analysis.get('top_concerns', ai_analysis.get('key_concerns', [])),
+            'explanation': ai_analysis.get('explanation', ''),
+            'recommendation_bullets': ai_analysis.get('recommendation_bullets', ai_analysis.get('recommendations', [])),
             'recommendations': recommendations,
             'scores': scores_dict,
             'email_details': {
