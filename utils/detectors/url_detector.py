@@ -20,7 +20,8 @@ class URLDetector:
         
         self.suspicious_keywords = [
             'verify', 'confirm', 'secure', 'update', 'login',
-            'signin', 'account', 'password', 'reset', 'urgent'
+            'signin', 'account', 'password', 'reset', 'urgent',
+            'payroll', 'salary', 'banking', 'human-resources'
         ]
     
     def extract_urls(self, text):
