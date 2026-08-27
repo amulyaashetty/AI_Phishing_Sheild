@@ -117,14 +117,16 @@ class RiskCalculator:
             dict: Confidence metrics
         """
         scores = [
-            scores_dict.get('keyword_score', 0),
-            scores_dict.get('url_score', 0),
+            min(scores_dict.get('keyword_score', 0) * 3.33, 100),
+            min(scores_dict.get('url_score', 0) * 4, 100),
             scores_dict.get('regex_score', 0),
+            min(scores_dict.get('sender_score', 0) * 5, 100),
+            min(scores_dict.get('attachment_score', 0) * 6.67, 100),
             scores_dict.get('ai_score', 0)
         ]
         
         # Count detectors that flagged the email
-        flagged_count = sum(1 for s in scores if s > 30)
+        flagged_count = sum(1 for s in scores if s >= 50)
         
         # Confidence: how many detectors agree
         confidence = (flagged_count / len(scores)) * 100
