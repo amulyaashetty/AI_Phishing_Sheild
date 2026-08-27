@@ -4,6 +4,7 @@ Uses Ollama local LLM for intelligent phishing detection reasoning.
 """
 
 import requests
+import re
 
 
 class AIAnalyzer:
@@ -115,7 +116,11 @@ Be concise and professional."""
         response_lower = response.lower()
         
         risk_level = 'Moderate'
-        if 'high risk' in response_lower or 'very suspicious' in response_lower:
+        explicit_level = re.search(r'(?:risk\s*level|risk)\s*:\s*(critical|high|moderate|low)', response_lower)
+        if explicit_level:
+            parsed_level = explicit_level.group(1)
+            risk_level = 'High' if parsed_level == 'critical' else parsed_level.capitalize()
+        elif 'high risk' in response_lower or 'very suspicious' in response_lower:
             risk_level = 'High'
         elif 'low risk' in response_lower or 'appears safe' in response_lower or 'legitimate' in response_lower:
             risk_level = 'Low'
@@ -146,7 +151,7 @@ Be concise and professional."""
             'recommendation_bullets': []
         }
         
-        lines = response.split('\n')
+        lines = response.splitlines()
         current_section = None
         
         for line in lines:
@@ -155,32 +160,52 @@ Be concise and professional."""
                 continue
             
             # Detect section headers
-            if line.startswith('1.') or 'RISK LEVEL' in line.upper():
+            if re.match(r'^1[.)]\s*', line) or 'RISK LEVEL' in line.upper():
                 current_section = 'risk_level'
-                sections['risk_level'] = line.replace('1.', '').replace('RISK LEVEL:', '').strip()
-            elif line.startswith('2.') or 'TOP 3 CONCERNS' in line.upper():
+                sections['risk_level'] = re.sub(r'^1[.)]\s*', '', line, flags=re.IGNORECASE)
+                sections['risk_level'] = re.sub(r'^RISK LEVEL\s*:\s*', '', sections['risk_level'], flags=re.IGNORECASE).strip()
+            elif re.match(r'^2[.)]\s*', line) or 'TOP 3 CONCERNS' in line.upper():
                 current_section = 'concerns'
-            elif line.startswith('3.') or 'EXPLANATION' in line.upper():
+                content = re.sub(r'^2[.)]\s*', '', line)
+                content = re.sub(r'^TOP 3 CONCERNS\s*:\s*', '', content, flags=re.IGNORECASE).strip()
+                if content:
+                    sections['concerns'].extend(self._clean_list_items(content))
+            elif re.match(r'^3[.)]\s*', line) or 'EXPLANATION' in line.upper():
                 current_section = 'explanation'
-            elif line.startswith('4.') or 'RECOMMENDATION' in line.upper():
+                content = re.sub(r'^3[.)]\s*', '', line)
+                content = re.sub(r'^EXPLANATION\s*:\s*', '', content, flags=re.IGNORECASE).strip()
+                if content:
+                    sections['explanation'] = content
+            elif re.match(r'^4[.)]\s*', line) or 'RECOMMENDATION' in line.upper():
                 current_section = 'recommendation'
+                content = re.sub(r'^4[.)]\s*', '', line)
+                content = re.sub(r'^RECOMMENDATION\s*:\s*', '', content, flags=re.IGNORECASE).strip()
+                if content:
+                    sections['recommendation'] = content
+                    sections['recommendation_bullets'].append(content)
             elif current_section and line:
                 # Add content to current section
                 if current_section == 'concerns':
-                    # Clean up bullet points
-                    clean_line = line.lstrip('-•*').strip()
-                    if clean_line:
-                        sections['concerns'].append(clean_line)
+                    sections['concerns'].extend(self._clean_list_items(line))
                 elif current_section == 'explanation':
                     sections['explanation'] += ' ' + line
                 elif current_section == 'recommendation':
-                    clean_line = line.lstrip('-•*').strip()
-                    if clean_line:
-                        sections['recommendation_bullets'].append(clean_line)
-                    if not sections['recommendation']:
-                        sections['recommendation'] = clean_line
+                    items = self._clean_list_items(line)
+                    sections['recommendation_bullets'].extend(items)
+                    if not sections['recommendation'] and items:
+                        sections['recommendation'] = items[0]
         
         return sections
+
+    def _clean_list_items(self, text):
+        """Split common AI bullet formats into clean list entries."""
+        items = re.split(r'\s+(?=[-•*]\s+|\d+[.)]\s+)', text)
+        cleaned = []
+        for item in items:
+            item = re.sub(r'^[-•*]\s*', '', item).strip()
+            if item:
+                cleaned.append(item)
+        return cleaned
     
     def _fallback_analysis(self, email_content, extracted_info):
         """Fallback analysis when Ollama is not available."""
@@ -193,11 +218,19 @@ Be concise and professional."""
                 "Using rule-based detection only."
             ),
             'risk_level': 'Moderate',
+            'risk_level_text': 'Moderate',
+            'top_concerns': ['AI analysis is unavailable', 'Only rule-based signals were evaluated'],
+            'explanation': 'The local AI service did not respond, so this result relies on deterministic detectors.',
             'key_concerns': [
                 'AI model not accessible',
                 'Relying on pattern-based detection only'
             ],
             'recommendations': [
+                'Start Ollama service for full AI analysis',
+                'Use rule-based detection results cautiously'
+            ],
+            'recommendation': 'Start Ollama for contextual AI analysis',
+            'recommendation_bullets': [
                 'Start Ollama service for full AI analysis',
                 'Use rule-based detection results cautiously'
             ]
