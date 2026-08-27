@@ -147,6 +147,24 @@ class SenderDetector:
                 'type': 'suspicious_characters',
                 'description': 'Sender email contains unusual special characters'
             })
+
+        # Pattern 5: Payroll or HR impersonation domains
+        payroll_terms = ['payroll', 'salary', 'human-resources', 'hr', 'benefits']
+        if any(term in sender_lower for term in payroll_terms):
+            suspicious.append({
+                'type': 'payroll_impersonation',
+                'description': 'Sender claims to represent payroll or human resources'
+            })
+
+        # Pattern 6: Brand-like hyphenated domain used for account actions
+        if '@' in sender_email:
+            domain = sender_email.rsplit('@', 1)[1].lower()
+            action_terms = ['verify', 'update', 'secure', 'account', 'login']
+            if domain.count('-') >= 1 and any(term in domain for term in action_terms):
+                suspicious.append({
+                    'type': 'lookalike_action_domain',
+                    'description': 'Sender uses a hyphenated domain with account-action wording'
+                })
         
         return suspicious
     
