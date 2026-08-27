@@ -19,14 +19,17 @@ class KeywordDetector:
             'your account will be closed', 'your account has been suspended',
             'your account has been locked', 'suspicious activity',
             'unusual activity', 'unauthorized access', 'verify your identity',
-            'update your information', 're-enter your credentials'
+            'update your information', 're-enter your credentials',
+            'payroll verification', 'verify your salary account',
+            'missing banking information', 'delay your next paycheck'
         ]
         
         self.credential_keywords = [
             'password', 'otp', 'pin', 'social security',
             'credit card', 'bank account', 'login', 'verify identity',
             'confirm identity', 'authenticate', 'secret question',
-            'cvv', 'expiration date', 'billing address'
+            'cvv', 'expiration date', 'billing address',
+            'banking information', 'salary account', 'payroll records'
         ]
         
         self.urgency_phrases = [
