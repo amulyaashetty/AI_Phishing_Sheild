@@ -152,6 +152,10 @@ def analyze():
             'total_detectors': confidence_info.get('total_detectors', 0),
             'concerns': [],
             'ai_explanation': analysis_result.get('ai_explanation', ''),
+            'risk_level_text': analysis_result.get('risk_level_text', ''),
+            'top_concerns': analysis_result.get('top_concerns', []),
+            'explanation': analysis_result.get('explanation', ''),
+            'recommendation_bullets': analysis_result.get('recommendation_bullets', []),
             'recommendation': analysis_result.get('recommendations', ['Take appropriate action'])[0] if analysis_result.get('recommendations') else 'Review carefully',
             'scores': {
                 'keyword_score': scores.get('keyword_score', 0),
